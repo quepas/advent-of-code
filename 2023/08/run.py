@@ -53,7 +53,7 @@ with open("input") as f:
     print("----- Part two -----")
     start_nodes = list(filter(lambda node: node.endswith("A"), desert_map["network"].keys()))
     # Instead of following all the paths simultaneously ad infinitum,
-    # We  assume that in each path, there is only one ending node **Z, then the moment when
+    # We assume that in each path, there is only one ending node **Z, then the moment when
     # all paths finish at the same time is the least common multiple of their respective steps
     required_steps = least_common_multiple(
         list(map(partial(find_num_path_steps, desert_map=desert_map, z_ending=True), start_nodes)))
