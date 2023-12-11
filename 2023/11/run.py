@@ -6,8 +6,10 @@ Galaxy = tuple[int, int]
 
 class GalaxyTracker:
     """
-    As we are interested only in an area with any galaxies,
-    we can easily skip all expansions outside this area
+    A simple tracker of galaxies which is capable of computing distance between galaxies in an expandable universe.
+    The universe expansion is found by analysing which coordinates on x,y-axes haven't been used by galaxies.
+    Then, each unused coordinate represents a single "line" of the universe expansion which is then multiplied
+    by the rate of expansion (the expansion coefficient).
     """
 
     def __init__(self, initial_size: tuple[int, int]):
@@ -16,10 +18,10 @@ class GalaxyTracker:
         self.unused_rows: list[int] = list(range(0, initial_size[0]))
         self.unused_columns: list[int] = list(range(0, initial_size[1]))
 
-    def __len__(self):
-        return len(self.galaxies)
-
     def track(self, galaxy: Galaxy) -> None:
+        """
+        Track a single galaxy. Keep track of unused coordinates so far.
+        """
         self.galaxies.append(galaxy)
         row, column = galaxy
         if row in self.unused_rows:
@@ -36,27 +38,46 @@ class GalaxyTracker:
         return distance + row_expansion + column_expansion
 
     def positions(self) -> list[Galaxy]:
+        """
+        Return all tracked so far galaxies
+        """
         return self.galaxies
 
     def count_expanded_rows(self, start: int, end: int) -> int:
-        # Count expanded rows between [start, end]
+        """
+        Count number of expanded rows between [start, end] positions
+        """
         return sum(map(lambda row: start <= row <= end, self.unused_rows))
 
     def count_expanded_columns(self, start: int, end: int) -> int:
+        """
+        Count number of expanded columns between [start, end] positions
+        """
         return sum(map(lambda col: start <= col <= end, self.unused_columns))
 
 
 def find_galaxies_in_row(text: str, row_index: int) -> list[Galaxy]:
+    """
+    Convert galaxy position in a row to a full (row, column) position withing an universe image
+    """
     return [(row_index, column_idx) for column_idx, _ in enumerate(text) if text[column_idx] == "#"]
 
 
 def calculate_manhattan_distance(g1: Galaxy, g2: Galaxy) -> int:
+    """
+    Compute manhattan distance of two galaxies (sum of absolute differences between corresponding axes)
+    URL: https://en.wikipedia.org/wiki/Taxicab_geometry
+    """
     g1_row, g1_column = g1
     g2_row, g2_column = g2
     return abs(g1_row - g2_row) + abs(g1_column - g2_column)
 
 
 def read_galaxies(lines: list[str]) -> GalaxyTracker:
+    """
+    Read galaxies by parsing the "image" file line-by-line.
+    Each time a galaxy is found it is tracked by the Galaxy Tracker class.
+    """
     image_size = len(lines), len(lines[0])
     tracker = GalaxyTracker(initial_size=image_size)
     row = 0
@@ -68,12 +89,19 @@ def read_galaxies(lines: list[str]) -> GalaxyTracker:
 
 
 def compute_distance_between_galaxies(tracker: GalaxyTracker, expansion_coefficient: int) -> int:
+    """
+    Compute distance of all combinations of galaxy pairs by taking into account the universe expansion
+    (given by expansion_coefficient)
+    """
     galaxies = tracker.positions()
-    return sum(starmap(partial(tracker.calculate_distance_with_expansions, expansion_coefficient=expansion_coefficient),
-                       combinations(galaxies, r=2)))
+    return sum(  # Sum the distances!
+        # Calculate distance of each pair of galaxies
+        starmap(partial(tracker.calculate_distance_with_expansions, expansion_coefficient=expansion_coefficient),
+                # Creates combinations of galaxy pairs
+                combinations(galaxies, r=2)))
 
 
-with open("input") as f:
+with open("input_test_1") as f:
     galaxy_tracker = read_galaxies(f.readlines())
     print("----- Part one -----")
     print(f"Total distance between pairs of galaxies (expansion coefficient: 2): "
