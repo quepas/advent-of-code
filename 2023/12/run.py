@@ -1,6 +1,6 @@
 import re
 from functools import partial
-from itertools import product
+from itertools import product, pairwise
 from multiprocessing import Pool
 
 ConditionGroup = tuple[int, int]  # min, max
@@ -140,6 +140,19 @@ def find_usable_range_of_spring_groups(text: str) -> tuple[int, int]:
     return usable[0], usable[1] + 1
 
 
+def find_known_partial_spring_groups(text: str) -> list[int]:
+    partial_spring_groups = []
+    candidate = None
+    for idx in range(len(text)):
+        ch = text[idx]
+        if ch == "#" and candidate is None:
+            candidate = idx
+        elif ch != "#" and candidate is not None:
+            partial_spring_groups.append(candidate)
+            candidate = None
+    return partial_spring_groups
+
+
 def compute_used_space(control: list[int]) -> int:
     return sum(map(lambda value: value + 1, control))
 
@@ -152,9 +165,29 @@ def find_possible_placement_of_spring_groups(conditions: str, control: list[int]
     possible_placements = []
     for idx in range(len(control)):
         group_length = control[idx]
+        num_left_controls = len(control[:idx])
         min_start_pos = compute_used_space(control[:idx]) + start_pos
         max_end_pos = end_pos - compute_used_space(control[idx + 1:])
+        num_right_controls = len(control[idx + 1:])
         max_start_pos = max_end_pos - group_length
+        num_left_dots = conditions[:min_start_pos].count(".")
+        # print(num_left_controls, num_left_dots)
+        if num_left_dots > num_left_controls:
+            old = min_start_pos
+            min_start_pos -= (num_left_dots - num_left_controls)
+            print(f"Min_start_pos: {old} --> {min_start_pos}")
+        num_right_dots = conditions[max_end_pos:].count(".")
+        if num_right_dots > num_right_controls:
+            old = max_end_pos
+            max_end_pos -= (num_right_dots - num_right_controls)
+            print(f"Max_end_pos: {old} --> {max_end_pos}")
+            # min_start_pos
+
+        # Recompute the min_start_pos by taking into account dots .
+        # Increase min_start_pos by uncounted dots
+        # Decrease max_end_pos by uncounted dots
+
+        # print(min_start_pos, max_start_pos)
         # num_movements = max(0, max_end_pos - group_length)
         # print(
         #     f"control={group_length}; min-start-pos={min_start_pos}; "
@@ -193,7 +226,7 @@ def can_match_spring_group(conditions: str, start_pos: int, length: int) -> bool
 
 
 def test_product_placement(placement: list[int], control: list[int], conditions: str) -> bool:
-    print(f"Testing product placement: {placement}, {control}")
+    # print(f"Testing product placement: {placement}, {control}")
     for idx in range(len(control) - 1):
         if placement[idx] + control[idx] >= placement[idx + 1]:
             return False
@@ -215,13 +248,26 @@ def test_product_placement(placement: list[int], control: list[int], conditions:
     return True
 
 
+def filter_placements(placements: list[list[int]], control) -> list[list[int]]:
+    index = 0
+    for p1, p2 in pairwise(placements):
+        current_control = control[index]
+        # Remove current placement position incompatible with the next placement positions
+        for pos in p1:
+            if not any(filter(lambda x: pos + current_control <= x, p2)):
+                print(f"Removing: {pos}")
+                p1.remove(pos)
+        index += 1
+    return placements
+
+
 # def compute_
 
-with open("input") as f:
+with open("input_test_1") as f:
     # read_spring_conditions(f.readlines())
     lines = f.readlines()
     total_arrangements = 0
-    mul_factor = 1
+    mul_factor = 5
     for line in lines:
         conditions, control = line.split()
         control = list(map(int, control.split(",")))
@@ -231,6 +277,7 @@ with open("input") as f:
         print(conditions, control)
         # find_possible_placement_of_spring_groups(conditions, control)
         possible_placements = find_possible_placement_of_spring_groups(conditions, control)
+        possible_placements = filter_placements(possible_placements, control)
         print(f"Possible placements: {possible_placements}")
         working_placements = list(
             filter(partial(test_product_placement, control=control, conditions=conditions),
