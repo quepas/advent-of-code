@@ -44,12 +44,13 @@ def parse_hailstone(text: str) -> Hailstone:
         velocity=list(map(int, vel.split(","))))
 
 
-with open("input") as f:
+with open("input_test_1") as f:
     hailstones = list(map(parse_hailstone, f.readlines()))
+    print("----- Part one -----")
     print(hailstones)
     # input_test_1
-    # axis_min, axis_max = 7, 27
-    axis_min, axis_max = 200000000000000, 400000000000000
+    axis_min, axis_max = 7, 27
+    # axis_min, axis_max = 200000000000000, 400000000000000
 
     count = 0
     for h1, h2 in combinations(hailstones, r=2):
@@ -59,3 +60,5 @@ with open("input") as f:
             print(f"\t* {h1} vs {h2}: intersection: {P}")
             count += 1
     print("Intersection count:", count)
+
+    print("----- Part two -----")
