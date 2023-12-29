@@ -1,3 +1,7 @@
+from functools import partial
+from multiprocessing import Pool
+from pathlib import Path
+from time import time
 from typing import Optional
 
 
@@ -53,8 +57,8 @@ def find_next_position(record: str, group_size: int, start: int = 0) -> Optional
             # Otherwise, check what is after the group
             if record[group_end:(group_end + 1)] != "#" and group.count(".") == 0 and len(group) == group_size:
                 return i
-            # if record[i] == "#":
-            #     return None
+            if record[i] == "#":
+                return None
     return None
 
 
@@ -70,7 +74,7 @@ class Placement:
 
     def next(self) -> Optional["Placement"]:
         """
-        Move the last group to a legal position
+        Move the latest group to a legal position
         """
         # Placement with no positions cannot have a next state
         if len(self.positions) == 0:
@@ -83,6 +87,7 @@ class Placement:
         last_group_size = self.groups[len(self.positions) - 1]
         search_start = self.positions[-1] + 1
         new_position = find_next_position(self.record, last_group_size, start=search_start)
+
         if new_position is None:
             return None
         new_positions = self.positions.copy()
@@ -91,7 +96,7 @@ class Placement:
 
     def first(self) -> Optional["Placement"]:
         # If each each group has already an assigned position, there is no possible extension
-        if self.accept():
+        if len(self.positions) == len(self.groups):
             return None
         # Otherwise, find the next legal position of the last group
         if len(self.positions) > 0:
@@ -105,8 +110,9 @@ class Placement:
         new_position = find_next_position(self.record, group_size, start=search_start)
         if new_position is None:
             return None
+
         # Check if at the end there is not #
-        # if len(self.groups) == len(self.positions) + 1 and self.record[new_position+1:].count("#") > 0:
+        # if len(self.groups) == len(self.positions) + 1 and self.record[new_position+group_size:].count("#") > 0:
         #     return None
         new_positions = self.positions.copy()
         new_positions.append(new_position)
@@ -118,7 +124,9 @@ class Placement:
         Because the invariant is that at each change first/next a correct position is placed, then
         when all of them are assigned the end result is a correct placement.
         """
-        return len(self.positions) == len(self.groups)
+        if len(self.positions) == len(self.groups):
+            return self.record[self.positions[-1] + self.groups[-1]:].count("#") == 0
+        return False
 
     def __len__(self) -> int:
         """
@@ -130,78 +138,55 @@ class Placement:
         return f"Placement(groups={self.groups}, positions={self.positions})"
 
 
-def matches(placement: Placement, conditions: str) -> bool:
-    required = [i for i in range(len(conditions)) if conditions[i] == "#"]
-    for idx in range(len(placement.positions)):
-        start = placement.positions[idx]
-        length = placement.groups[idx]
-        if len(required) > 0 and min(required) < start:
-            return False
-        if conditions.find(".", start, start + length) > -1:
-            return False
-        required = list(filter(lambda x: x >= start + length, required))
-    return True
-
-    # placement_mask = [False] * len(conditions)
-    # for idx in range(len(placement)):
-    #     start = placement.positions[idx]
-    #     length = placement.controls[idx]
-    #     end = start + length
-    #     placement_mask[start:end] = [True] * length
-    # conditions_mask = list(map(lambda c: c in ["?", "#"], conditions))
-    # return all(starmap(lambda x, y: (x and y) or (not x), zip(placement_mask, conditions_mask)))
-
-
-total_counter = 0
-wrong = 0
-
-
-# def reject(conditions: str, )
-def backtrack(record, controls: list[int], c: Placement):
-    global total_counter
-    global wrong
-    # if c.full():
-    # print(f"Testing: {c}, {controls}")
-    # if not matches(c, record):
-    #     return
-    # pass
+def backtrack(c: Placement, record, controls: list[int]) -> int:
     if c.accept():
-        if test_product_placement(c.positions, controls, record):
-            wrong += 1
-        else:
-            print(f"Wrong?: {c}")
-        # print(f"* Found output: {c}")
-        total_counter += 1
-        return
+        return 1
     s = c.first()
+    count = 0
     while s is not None:
-        backtrack(record, controls, s)
+        count += backtrack(s, record, controls)
         s = s.next()
+    return count
 
 
-with open("input") as f:
-    lines = f.readlines()
-    total_arrangements = 0
-    mul_factor = 1
-    counter = 1
-    for line in lines:
-        print(f"----- Case: {counter} -----")
-        conditions, control = line.split()
-        control = list(map(int, control.split(",")))
-        # Extend !
-        conditions = "?".join([conditions] * mul_factor)
-        control = [*control] * mul_factor
-        print(conditions, control)
+def fill_record(counter: int, full_record: str) -> int:
+    # Non-parallel version
+    record, control = full_record
+    root = Placement(record, groups=control)
+    return backtrack(root, record, control)
 
-        # for idx in range(0, len(conditions)):
-        # TODO: parallelism?
-        root = Placement(conditions, groups=control)
-        backtrack(conditions, control, root)
-        counter += 1
 
-        print(f"Total counter={total_counter}")
-        print(f"Wrong={wrong}")
+def parse_record(record: str, mul_factor: int) -> tuple[str, list]:
+    conditions, control = record.split()
+    control = list(map(int, control.split(",")))
+    # Extend !
+    conditions = "?".join([conditions] * mul_factor)
+    control = [*control] * mul_factor
+    return conditions, control
 
-        # exit()
 
+def run_test(path: Path, mul_factor: int = 1):
+    print(f">> Testing: {path} with x factor: {mul_factor}")
+    t0 = time()
+    with open(path) as f:
+        lines = f.readlines()
+        records = list(map(partial(parse_record, mul_factor=mul_factor), lines))
+        # print(f"----- Case: {counter} -----")
+        # print(conditions, control)
+        with Pool() as p:
+            total_arrangements = sum(p.starmap(fill_record, enumerate(records, start=1)))
+        print(f"Total: {total_arrangements}")
+    t1 = time()
+    print(f"Took time: {t1 - t0}s")
+
+
+run_test("input_test_1")
+run_test("input_test_1", 5)
+run_test("input", 1)
 # Input - 6958
+
+#    per-placement ; per-line
+# factor x1 => 11s ; 0.1 s
+# factor x2 => 21s ; 10.2 s
+# factor x3 =>
+# factor x4 =>
