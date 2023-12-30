@@ -1,4 +1,4 @@
-from functools import partial
+from functools import partial, cache
 from multiprocessing import Pool
 from pathlib import Path
 from time import time
@@ -46,8 +46,13 @@ def test_product_placement(placement: list[int], control: list[int], conditions:
     return True
 
 
-def find_next_position(record: str, group_size: int, start: int = 0) -> Optional[int]:
-    for i in range(start, len(record)):
+def find_next_position(record: str, group_size: int, start: int = 0, end: Optional[int] = None) -> Optional[int]:
+    """
+    Find first valid position of a group after a given start index
+    """
+    if end is None:
+        end = len(record) - group_size + 1
+    for i in range(start, end):
         # Find first possible start position
         if record[i] in ["#", "?"]:
             # Then test if the group can fit nicely
@@ -60,6 +65,10 @@ def find_next_position(record: str, group_size: int, start: int = 0) -> Optional
             if record[i] == "#":
                 return None
     return None
+
+
+def compute_used_space(control: list[int]) -> int:
+    return sum(map(lambda value: value + 1, control))
 
 
 class Placement:
@@ -86,7 +95,12 @@ class Placement:
         # Start from the +1 of the last position
         last_group_size = self.groups[len(self.positions) - 1]
         search_start = self.positions[-1] + 1
-        new_position = find_next_position(self.record, last_group_size, start=search_start)
+        assigned_groups = len(self.positions)
+        end = len(self.record) - compute_used_space(self.groups[assigned_groups:])
+        # print("[", search_start, ", ", end, "]")
+        # if end <= search_start:
+        #     end = None
+        new_position = find_next_position(self.record, last_group_size, start=search_start, end=end)
 
         if new_position is None:
             return None
@@ -107,7 +121,13 @@ class Placement:
         else:
             search_start = 0
             group_size = self.groups[len(self.positions)]
-        new_position = find_next_position(self.record, group_size, start=search_start)
+        # End is next # + group_size
+        try:
+            end = self.record[search_start:].index("#") + search_start
+            end += group_size + 1
+        except:
+            end = None
+        new_position = find_next_position(self.record, group_size, start=search_start, end=end)
         if new_position is None:
             return None
 
@@ -138,13 +158,17 @@ class Placement:
         return f"Placement(groups={self.groups}, positions={self.positions})"
 
 
-def backtrack(c: Placement, record, controls: list[int]) -> int:
+total_finished = 0
+
+
+# @cache
+def backtrack(c: Placement) -> int:
     if c.accept():
         return 1
     s = c.first()
     count = 0
     while s is not None:
-        count += backtrack(s, record, controls)
+        count += backtrack(s)
         s = s.next()
     return count
 
@@ -153,14 +177,18 @@ def fill_record(counter: int, full_record: str) -> int:
     # Non-parallel version
     record, control = full_record
     root = Placement(record, groups=control)
-    return backtrack(root, record, control)
+    result = backtrack(root)
+    print(f"Finished: {counter}")
+    return result
 
 
 def parse_record(record: str, mul_factor: int) -> tuple[str, list]:
     conditions, control = record.split()
     control = list(map(int, control.split(",")))
     # Extend !
+    # mul_factor = 5
     conditions = "?".join([conditions] * mul_factor)
+    # conditions = conditions + "?"
     control = [*control] * mul_factor
     return conditions, control
 
@@ -174,19 +202,24 @@ def run_test(path: Path, mul_factor: int = 1):
         # print(f"----- Case: {counter} -----")
         # print(conditions, control)
         with Pool() as p:
-            total_arrangements = sum(p.starmap(fill_record, enumerate(records, start=1)))
-        print(f"Total: {total_arrangements}")
+            total_arrangements = p.starmap(fill_record, enumerate(records, start=1))
+        print(f"Arrangements: {total_arrangements}")
+        print(f"Num. of total arrangements: {sum(total_arrangements)}")
     t1 = time()
     print(f"Took time: {t1 - t0}s")
+    return total_arrangements
 
 
-run_test("input_test_1")
-run_test("input_test_1", 5)
+# run_test("input_test_1", 5)
+# run_test("input_test_hard", 3)
 run_test("input", 1)
+# run_test("input_test_hard", 1)
 # Input - 6958
 
-#    per-placement ; per-line
+#    per-placement ; per-line ; cache
 # factor x1 => 11s ; 0.1 s
-# factor x2 => 21s ; 10.2 s
-# factor x3 =>
+# factor x2 => 21s ; 10.2 s ; 2s
+# factor x3 =>     ;        ;
 # factor x4 =>
+
+# 3455501625284 - too low
