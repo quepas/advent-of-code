@@ -77,7 +77,7 @@ def move_rocks(rocks, move_field: list[list[int]], move: Move, nrow, ncol):
     return sorted(moved_rocks)
 
 
-def read_platform2(lines: list[str]) -> list[list[str]]:
+def read_platform(lines: list[str]) -> list[list[str]]:
     platform = []
     rocks = []
     row = 0
@@ -93,8 +93,26 @@ def compute_total_load(rocks, nrow) -> int:
 
 
 with open("input") as f:
-    platform, rocks = read_platform2(f.readlines())
+    platform, rocks = read_platform(f.readlines())
     nrow, ncol = len(platform), len(platform[0])
     move_field = create_empty_move_field(platform)
-    rocks = move_rocks(rocks, move_field, Move.UP, nrow, ncol)
-    print(f"Total load: {compute_total_load(rocks, nrow)}")
+    unique_rocks = list()
+    max_cycles = 1000000000
+    # In the Part Two, instead of iterating up to max_cyles, we make an assumption that the movement of rocks
+    # follows a cycle, all we need to do is to find such a cycle and extrapolate the result for the max_cycles value
+    for i in range(1, max_cycles):
+        rocks = move_rocks(rocks, move_field, Move.UP, nrow, ncol)
+        rocks = move_rocks(rocks, move_field, Move.LEFT, nrow, ncol)
+        rocks = move_rocks(rocks, move_field, Move.DOWN, nrow, ncol)
+        rocks = move_rocks(rocks, move_field, Move.RIGHT, nrow, ncol)
+        print(f"#{i} Computed: {compute_total_load(rocks, nrow)}")
+        if rocks in unique_rocks:
+            mini_cycle_start = unique_rocks.index(rocks) + 1
+            mini_cycle_end = i
+            mini_cycle_length = mini_cycle_end - mini_cycle_start
+            print(
+                f"Already there after {i} cycles, mini-cycle-start={mini_cycle_start}, mini-cycle-end={mini_cycle_end}; length={mini_cycle_length}; {compute_total_load(rocks, nrow)}")
+            print(
+                f"Found: {compute_total_load(unique_rocks[mini_cycle_start + ((max_cycles - mini_cycle_start) % mini_cycle_length) - 1], nrow)}")
+            break
+        unique_rocks.append(rocks)
