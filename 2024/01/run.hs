@@ -2,7 +2,7 @@ import Data.List (sort)
 import Data.Maybe (fromMaybe)
 import qualified Data.Map as Map
 
--- | Convient alias for a read function
+-- | Convenient alias to read() function
 stringToInt :: String -> Int
 stringToInt = read
 
