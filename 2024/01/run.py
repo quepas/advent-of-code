@@ -1,16 +1,13 @@
 from common.functional import compose
-
-
-def parse_line(line: str) -> tuple[int, ...]:
-    return tuple(map(int, line.split()))
-
+from common.parsing import parse_line_of_ints
 
 with open("2024/01/input", "r") as f:
     left_column, right_column = [], []
-    for l, r in map(parse_line, f.readlines()):
+    for l, r in map(parse_line_of_ints, f.readlines()):
         left_column.append(l)
         right_column.append(r)
 
+    # Sorting allows us to pick the smallest number from a column at each step
     left_column = sorted(left_column)
     right_column = sorted(right_column)
 
