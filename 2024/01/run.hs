@@ -43,7 +43,7 @@ computeSimilarity left right = do
 
 main :: IO()
 main = do
-  content <- readFile "input"
+  content <- readFile "2024/01/input"
   let file_lines = lines content
   let left_column = getNthColumn file_lines 0
   let right_column = getNthColumn file_lines 1
