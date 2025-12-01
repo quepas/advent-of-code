@@ -1,4 +1,4 @@
-import Collections (allPairwise, pairwise, pairwiseDifference)
+import Collections (pairwiseDifference)
 
 parseLevels :: String -> [Int]
 parseLevels row = map read (words row)
@@ -16,6 +16,12 @@ isSafeReport :: [Int] -> Bool
 isSafeReport values = do
   let level_diff = pairwiseDifference values
   allIncreasing level_diff || allDecreasing level_diff
+
+canBeFixed :: [Int] -> Bool
+canBeFixed [] = True
+canBeFixed [_] = True
+canBeFixed levels = do
+  let safe = isSafeReport (levels)
 
 main :: IO ()
 main = do

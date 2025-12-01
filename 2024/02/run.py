@@ -5,7 +5,7 @@ from common.parsing import parse_line_of_ints
 def check_safe(levels: list[int]) -> bool:
     """
     Check if level differences are all increasing or all decreasing
-    and if they are in a specific range!
+    and in a specific range!
     """
     levels_diff = difference(levels)
     return all(map(lambda e: 0 < e <= 3, levels_diff)) or all(
@@ -14,7 +14,7 @@ def check_safe(levels: list[int]) -> bool:
 
 
 def can_be_fixed(levels: list[int]) -> bool:
-    """Fix using Problem Dampener: one wrong number which can fix the whole sequence!"""
+    """Fix by finding Problem Dampener: one wrong number which can fix the whole sequence!"""
     for i in range(len(levels)):
         # Holdout one number and then try testing !
         new_row = levels[:i] + levels[i + 1 :]
