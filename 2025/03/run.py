@@ -3,6 +3,11 @@ from pathlib import Path
 
 
 def find_max_joltage(bank: str, digits: int = 2) -> int:
+    """
+    Traverse a subset of a bank of batteries, choosing at each step the largest
+    battery possible. So that, when juxtaposed side by side, the batteries give
+    the maximal joltage.
+    """
     left_index = 0  # inclusive
     num = 0
     for i in range(digits, 0, -1):
@@ -23,9 +28,9 @@ def find_max_joltage(bank: str, digits: int = 2) -> int:
 dir_path = Path(os.path.dirname(os.path.realpath(__file__)))
 with open(dir_path / "input") as f:
     joltages = list(map(str.strip, f.readlines()))
-    # Part 1
+    # --- Part 1: find the largest joltage by chosing exactly two batteries
     result = sum(map(lambda x: find_max_joltage(x, digits=2), joltages))
-    print(f"Part 1: total output joltage = {result}")
-    # Part 2
+    print(f"Part 1: total output joltage = {result} (should be 17408)")
+    # --- Part 2: find the largest joltage by chosing exactly twelve batteries
     result = sum(map(lambda x: find_max_joltage(x, digits=12), joltages))
-    print(f"Part 2: total output joltage = {result}")
+    print(f"Part 2: total output joltage = {result} (should be 172740584266849)")

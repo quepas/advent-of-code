@@ -1,10 +1,14 @@
 import os
-from pathlib import Path
 from itertools import product
+from pathlib import Path
 
-def count_neighbour_paper_rolls(paper_map: list[list[str]], position: tuple[int, int]) -> int:
+
+def count_neighbour_paper_rolls(
+    paper_map: list[list[str]], position: tuple[int, int]
+) -> int:
+    """Count paper rolls on eight surronding neighbour grids"""
     nrow, ncol = len(paper_map), len(paper_map[0])
-    # Clockwise
+    # Traverse neighbours clockwise
     offsets = [(-1, -1), (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0)]
     count = 0
     for offset in offsets:
@@ -22,16 +26,24 @@ with open(dir_path / "input") as f:
     nrow, ncol = len(paper_map), len(paper_map[0])
     count = 0
     for x, y in product(range(nrow), range(ncol)):
-        if paper_map[x][y] == "@" and count_neighbour_paper_rolls(paper_map, (x, y)) < 4:
+        if (
+            paper_map[x][y] == "@"
+            and count_neighbour_paper_rolls(paper_map, (x, y)) < 4
+        ):
             count += 1
-    print(f"Part 1: number of accessible by forklift paper rolls = {count}")
+    print(
+        f"Part 1: number of accessible by forklift paper rolls = {count} (should be 1502)"
+    )
     count = 0
     new_moves = True
     while new_moves:
         new_moves = False
         for x, y in product(range(nrow), range(ncol)):
-            if paper_map[x][y] == "@" and count_neighbour_paper_rolls(paper_map, (x, y)) < 4:
+            if (
+                paper_map[x][y] == "@"
+                and count_neighbour_paper_rolls(paper_map, (x, y)) < 4
+            ):
                 count += 1
                 new_moves = True
                 paper_map[x][y] = "."
-    print(f"Part 2: number of disposable paper rolls = {count}")
+    print(f"Part 2: number of disposable paper rolls = {count} (should be 9083)")
